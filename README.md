@@ -85,12 +85,3 @@ npm run dev
 * * * * * cd /path/to/Laravel-chat && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-## تست
-
-```bash
-php artisan test
-```
-
-## نکته وابستگی‌ها
-
-سورس اولیه روی Laravel 11 و نسخه قدیمی Reverb قفل شده است. تغییر Major Framework بدون اجرای Composer Update و Regression Test در این بسته انجام نشده است. برای مهاجرت به نسخه Major جدید Laravel، ابتدا یک شاخه جدا ایجاد کنید، dependencyها را به صورت کنترل‌شده ارتقا دهید و تست‌های این نسخه را پس از هر مرحله اجرا کنید.
