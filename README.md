@@ -82,7 +82,7 @@ npm run dev
 برای پاکسازی کاربران ناشناس و نشست‌های منقضی، Scheduler لاراول باید فعال باشد:
 
 ```cron
-* * * * * cd /path/to/okkio-chat && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /path/to/Laravel-chat && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 ## تست
