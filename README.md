@@ -1,6 +1,6 @@
-# Okkio Chat
+# laravel Chat
 
-Okkio Chat یک تالار گفت‌وگوی ناشناس و بلادرنگ بر پایه Laravel، Livewire، Reverb و Vite است.
+laravel Chat یک تالار گفت‌وگوی ناشناس و بلادرنگ بر پایه Laravel، Livewire، Reverb و Vite است.
 
 Programmer: Miladjef
 
