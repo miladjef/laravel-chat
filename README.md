@@ -1,66 +1,96 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Okkio Chat
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Okkio Chat یک تالار گفت‌وگوی ناشناس و بلادرنگ بر پایه Laravel، Livewire، Reverb و Vite است.
 
-## About Laravel
+Programmer: Miladjef
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## اصلاحات امنیتی و فنی این نسخه
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- مسیر ارسال پیام از Whisper مرورگر به Broadcast سمت سرور منتقل شده است.
+- هویت فرستنده پیام از نشست احراز هویت سمت سرور خوانده می‌شود و کلاینت قادر به تعیین نام یا UUID فرستنده نیست.
+- درج پیام، نام کاربر و آواتار با DOM API انجام می‌شود و `innerHTML` برای داده‌های کاربران حذف شده است.
+- محدودیت ارسال پیام روی ۸ پیام در ۱۰ ثانیه اعمال شده است.
+- طول هر پیام به ۵۰۰ نویسه محدود شده است.
+- Whisper مربوط به متن در حال تایپ حذف شده است و متن قبل از ارسال روی WebSocket منتشر نمی‌شود.
+- قابلیت تغییر تم همگانی حذف شده است. فرمان‌های `دارک` و `لایت` فقط روی مرورگر همان کاربر اثر دارند.
+- Gravatar و درخواست خارجی آواتار حذف شده‌اند. آواتار SVG به صورت محلی و بر اساس UUID تولید می‌شود.
+- Presence Channel دیگر ایمیل داخلی کاربر را منتشر نمی‌کند.
+- برای هر کاربر UUID مستقل ثبت می‌شود.
+- روی نام نمایشی Unique Index قرار گرفته و برخورد همزمان نام‌های تکراری کنترل می‌شود.
+- حساب ناشناس هنگام خروج حذف می‌شود و پاکسازی دوره‌ای حساب‌ها و نشست‌های منقضی نیز تعریف شده است.
+- `allowed_origins` برای Reverb از متغیر محیطی `REVERB_ALLOWED_ORIGINS` خوانده می‌شود و wildcard حذف شده است.
+- Headerهای امنیتی پایه شامل `nosniff`، `DENY`، Referrer Policy و Permissions Policy اضافه شده‌اند.
+- رابط Lobby برای موبایل و دسکتاپ اصلاح شده است.
+- فونت ناموجود پروژه با stack سیستمی جایگزین شده است.
+- تصویر صفحه ورود دیگر به Vite manifest وابسته نیست.
+- فایل `public/hot`، لاگ توسعه و `.env` از بسته نهایی حذف شده‌اند.
+- دیتابیس SQLite قدیمی و ناسازگار پاک شده و فایل SQLite خالی برای اجرای migration قرار گرفته است.
+- تست‌های Feature برای ورود، ثبت کاربر، نام تکراری، Broadcast پیام، محدودیت طول، خروج و جلوگیری از بازگشت `innerHTML` اضافه شده‌اند.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## پیش‌نیازها
 
-## Learning Laravel
+- PHP 8.2 یا بالاتر برای نسخه فعلی dependency lock
+- Composer
+- Node.js و npm
+- افزونه‌های PHP موردنیاز Laravel و SQLite یا یک پایگاه داده دیگر
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## نصب
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+```bash
+cp .env.example .env
+composer install
+php artisan key:generate
+php artisan migrate
+npm ci
+npm run build
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+برای محیط Production، مقادیر دامنه و Reverb را در `.env` با مقادیر واقعی جایگزین کنید و `SESSION_SECURE_COOKIE=true` قرار دهید:
 
-## Laravel Sponsors
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://chat.example.com
+SESSION_SECURE_COOKIE=true
+BROADCAST_CONNECTION=reverb
+REVERB_APP_ID=your-app-id
+REVERB_APP_KEY=your-app-key
+REVERB_APP_SECRET=your-app-secret
+REVERB_HOST=chat.example.com
+REVERB_PORT=443
+REVERB_SCHEME=https
+REVERB_ALLOWED_ORIGINS=https://chat.example.com
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST="${REVERB_HOST}"
+VITE_REVERB_PORT="${REVERB_PORT}"
+VITE_REVERB_SCHEME="${REVERB_SCHEME}"
+```
 
-### Premium Partners
+اجرای محیط توسعه:
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+```bash
+php artisan serve
+php artisan reverb:start
+npm run dev
+```
 
-## Contributing
+برای Production، Reverb را زیر Supervisor یا systemd اجرا کنید و WebSocket Proxy را در Nginx یا وب‌سرور تنظیم کنید.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Scheduler
 
-## Code of Conduct
+برای پاکسازی کاربران ناشناس و نشست‌های منقضی، Scheduler لاراول باید فعال باشد:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```cron
+* * * * * cd /path/to/okkio-chat && php artisan schedule:run >> /dev/null 2>&1
+```
 
-## Security Vulnerabilities
+## تست
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+php artisan test
+```
 
-## License
+## نکته وابستگی‌ها
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+سورس اولیه روی Laravel 11 و نسخه قدیمی Reverb قفل شده است. تغییر Major Framework بدون اجرای Composer Update و Regression Test در این بسته انجام نشده است. برای مهاجرت به نسخه Major جدید Laravel، ابتدا یک شاخه جدا ایجاد کنید، dependencyها را به صورت کنترل‌شده ارتقا دهید و تست‌های این نسخه را پس از هر مرحله اجرا کنید.

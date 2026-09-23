@@ -1,90 +1,70 @@
-<div class="w-full h-svh grid grid-cols-12 p-4 bg-gray-100 gap-4 dark:bg-secondary-950">
-    <aside class="col-span-4 flex flex-col gap-4">
+<div class="min-h-svh grid grid-cols-1 lg:grid-cols-12 p-3 sm:p-4 bg-gray-100 gap-3 sm:gap-4 dark:bg-secondary-950">
+    <aside class="lg:col-span-4 xl:col-span-3 flex flex-col gap-3 sm:gap-4 min-h-0">
         <div class="bg-white p-4 ring-1 ring-secondary-200 rounded-md dark:bg-secondary-900 dark:ring-secondary-800">
-
             <div class="flex items-center gap-4">
-                <div
-                    class="w-10 h-10 min-w-10 min-h-10 bg-secondary-200 dark:bg-secondary-800 rounded-md overflow-hidden">
-                    <img src="{{ auth()->user()->avatar }}" alt="" class="w-full h-full object-center object-cover">
+                <div class="w-10 h-10 min-w-10 min-h-10 bg-secondary-200 dark:bg-secondary-800 rounded-md overflow-hidden">
+                    <img src="{{ auth()->user()->avatar }}" alt="آواتار کاربر" class="w-full h-full object-center object-cover">
                 </div>
-                <div class="text-sm flex flex-col gap-1 truncate">
+                <div class="text-sm flex flex-col gap-1 truncate grow">
                     <p class="text-secondary-700 dark:text-secondary-300 truncate">
                         {{ auth()->user()->display_name }}
                     </p>
-                    <button class="text-secondary-500 text-xs dark:text-secondary-400 truncate">
-                        {{ str(auth()->user()->email)->replace('@okkio.chat', '')->toString() }}
-                    </button>
+                    <p class="text-secondary-500 text-xs dark:text-secondary-400 truncate" dir="ltr">
+                        {{ auth()->user()->uuid }}
+                    </p>
                 </div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit" class="text-xs text-rose-600 hover:text-rose-500 dark:text-rose-400">
+                        خروج
+                    </button>
+                </form>
             </div>
-
         </div>
-        <div
-            class="flex-auto h-0 bg-white ring-1 ring-secondary-200 rounded-md flex flex-col dark:bg-secondary-900 dark:ring-secondary-800">
-            <div class="px-4 py-4">
-                <p class="text-primary-600 dark:text-primary-500">
-                    کاربران آنلاین
-                </p>
+
+        <div class="lg:flex-auto lg:h-0 max-h-52 lg:max-h-none bg-white ring-1 ring-secondary-200 rounded-md flex flex-col dark:bg-secondary-900 dark:ring-secondary-800">
+            <div class="px-4 py-4 flex items-center justify-between gap-3">
+                <p class="text-primary-600 dark:text-primary-500">کاربران آنلاین</p>
+                <span id="online-users-count" class="text-xs text-secondary-500 dark:text-secondary-400">0</span>
             </div>
-
-            <ul id="online-users-list" class="flex flex-col gap-4 flex-auto h-0 scroll overflow-y-auto px-4 truncate">
-
-            </ul>
+            <ul id="online-users-list" wire:ignore class="flex flex-col gap-4 flex-auto min-h-0 scroll overflow-y-auto px-4 pb-4 truncate"></ul>
         </div>
+        <p class="text-center text-[11px] text-secondary-400 dark:text-secondary-600" dir="ltr">
+            Programmer: Miladjef
+        </p>
     </aside>
 
-    <main class="col-span-8 flex flex-col items-center justify-between gap-4">
-        <div
-            id="chat-list-wrapper"
-            class="flex-auto h-0 overflow-y-auto w-full scroll rounded-md ring-1 ring-secondary-200 w-full p-4 bg-white dark:bg-secondary-900 dark:ring-secondary-800">
+    <main class="lg:col-span-8 xl:col-span-9 flex flex-col items-center justify-between gap-3 sm:gap-4 min-h-[65svh] lg:min-h-0">
+        <div id="chat-list-wrapper" wire:ignore
+             class="flex-auto min-h-0 overflow-y-auto w-full scroll rounded-md ring-1 ring-secondary-200 p-4 bg-white dark:bg-secondary-900 dark:ring-secondary-800">
             <ul class="flex flex-col gap-4" id="chat-list">
                 @foreach($this->systemMessages() as $systemMessage)
                     <li class="flex items-start gap-4">
-                        <div
-                            class="min-w-10 min-h-10 w-10 h-10 bg-secondary-100 dark:bg-secondary-800 rounded-md overflow-hidden">
-                            <img src="{{ gravatar('okkio-system-20') }}" alt=""
-                                 class="w-full h-full object-center object-cover">
+                        <div class="min-w-10 min-h-10 w-10 h-10 bg-secondary-100 dark:bg-secondary-800 rounded-md overflow-hidden">
+                            <img src="{{ avatar_data_uri('okkio-system') }}" alt="آواتار سیستم" class="w-full h-full object-center object-cover">
                         </div>
-                        <div class="text-sm flex flex-col gap-1">
-                            <div class="text-secondary-500 flex gap-4 dark:text-secondary-400">
-                                <div class="flex gap-1 items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                         stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                              d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-                                    </svg>
-                                    <p>
-                                        سیستم اوکیوچت
-                                    </p>
-                                </div>
-                            </div>
-                            <p class="text-secondary-700 message dark:text-secondary-300">
-                                {{ $systemMessage }}
-                            </p>
+                        <div class="text-sm flex flex-col gap-1 min-w-0">
+                            <p class="text-secondary-500 dark:text-secondary-400">سیستم اوکیوچت</p>
+                            <p class="text-secondary-700 message dark:text-secondary-300">{{ $systemMessage }}</p>
                         </div>
                     </li>
                 @endforeach
             </ul>
         </div>
 
-        <div
-            class="rounded-md ring-1 ring-secondary-200 w-full p-4 bg-white dark:bg-secondary-900 dark:ring-secondary-800">
-            <form id="form-message" class="flex w-full gap-4">
+        <div class="rounded-md ring-1 ring-secondary-200 w-full p-3 sm:p-4 bg-white dark:bg-secondary-900 dark:ring-secondary-800">
+            <form id="form-message" class="flex flex-col sm:flex-row w-full gap-3 sm:gap-4" autocomplete="off">
                 <label for="input-message" class="grow">
-                    <input
-                        required
-                        name="message"
-                        type="text"
-                        id="input-message"
-                        class="w-full px-4 py-2 rounded-md outline-none bg-secondary-100
-                        ring-1 ring-secondary-200 dark:bg-secondary-800 dark:ring-secondary-700
-                        dark:placeholder:text-secondary-500 dark:text-secondary-300"
-                        placeholder="پیام خود را بنویسید..."
-                    >
+                    <span class="sr-only">پیام</span>
+                    <input required maxlength="500" name="message" type="text" id="input-message"
+                           class="w-full px-4 py-2 rounded-md outline-none bg-secondary-100 ring-1 ring-secondary-200 dark:bg-secondary-800 dark:ring-secondary-700 dark:placeholder:text-secondary-500 dark:text-secondary-300"
+                           placeholder="پیام خود را بنویسید...">
                 </label>
-                <button id="btn-message" class="bg-primary-600 dark:bg-primary-800 px-4 py-2 rounded-md text-white">
+                <button id="btn-message" type="submit" class="bg-primary-600 dark:bg-primary-800 px-5 py-2 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed">
                     ارسال پیام
                 </button>
             </form>
+            <p id="message-error" class="hidden text-sm text-rose-500 mt-2" role="alert"></p>
         </div>
     </main>
 </div>
@@ -94,226 +74,200 @@
     const chatListWrapper = document.getElementById('chat-list-wrapper');
     const chatList = document.getElementById('chat-list');
     const usersList = document.getElementById('online-users-list');
+    const usersCount = document.getElementById('online-users-count');
     const inputMessage = document.getElementById('input-message');
     const messageForm = document.getElementById('form-message');
     const messageButton = document.getElementById('btn-message');
+    const messageError = document.getElementById('message-error');
+    const currentUserUuid = @js(auth()->user()->uuid);
+    const currentUserAvatar = @js(auth()->user()->avatar);
+    const systemAvatar = @js(avatar_data_uri('okkio-system'));
 
-    inputMessage.addEventListener('keyup', handleMessageInputTypingEvent);
-    messageButton.addEventListener('click', broadcastMessage);
-    messageForm.addEventListener('submit', broadcastMessage);
+    const savedTheme = localStorage.getItem('okkio-theme');
+    if (savedTheme === 'light') document.documentElement.classList.remove('dark');
+    if (savedTheme === 'dark') document.documentElement.classList.add('dark');
 
-    updateScrollPosition();
-
-    Echo.join('lobby')
+    const lobbyChannel = Echo.join('lobby')
         .here(handleHereUsers)
         .joining(handleUserJoining)
         .leaving(handleUserLeaving)
-        .listenForWhisper('typing', handleTypingWhisper)
-        .listenForWhisper('new-message', handleNewMessageWhisper)
-        .listenForWhisper('global-theme-changing-request', handleGlobalThemeChangingRequestWhisper)
-    ;
+        .listen('.chat.message', handleChatMessage);
 
-    function handleGlobalThemeChangingRequestWhisper(event)
-    {
-        if(event.theme === 'light')
-        {
-            document.querySelector('html').classList.remove('dark');
-        }
-        else if(event.theme === 'dark')
-        {
-            document.querySelector('html').classList.add('dark');
-        }
-    }
+    messageForm.addEventListener('submit', submitMessage);
+    updateScrollPosition();
 
-    function broadcastMessage(event)
-    {
+    async function submitMessage(event) {
         event.preventDefault();
+        hideMessageError();
 
-        let message = inputMessage.value.trim();
+        const message = inputMessage.value.trim();
+        if (!message) return;
 
-        if (message.length <= 0)
-        {
+        if (handleLocalThemeCommand(message)) {
+            inputMessage.value = '';
+            inputMessage.focus();
             return;
         }
 
-        if(message === 'تم لایت')
-        {
-            message = 'تم را به صورت شخصی به حالت روشن تغییر داد.'
-            document.querySelector('html').classList.remove('dark');
-        }
-        else if (message === 'تم دارک')
-        {
-            message = 'تم را به صورت شخصی به حالت تیره تغییر داد.'
-            document.querySelector('html').classList.add('dark');
-        }
-        else if (message === 'تم لایت همگانی')
-        {
-            document.querySelector('html').classList.remove('dark');
-            Echo.join('lobby')
-                .whisper(
-                    'global-theme-changing-request',
-                    {
-                        theme: 'light'
-                    }
-                );
-            message = 'تم را به صورت همگانی به حالت روشن تغییر داد.'
+        messageButton.disabled = true;
+
+        try {
+            await $wire.sendMessage(message);
             inputMessage.value = '';
+            inputMessage.focus();
+        } catch (error) {
+            showMessageError(extractLivewireError(error));
+        } finally {
+            messageButton.disabled = false;
         }
-        else if (message === 'تم دارک همگانی')
-        {
-            document.querySelector('html').classList.add('dark');
-            Echo.join('lobby')
-                .whisper(
-                    'global-theme-changing-request',
-                    {
-                        theme: 'dark'
-                    }
-                );
-
-            message = 'تم را به صورت همگانی به حالت تیره تغییر داد.'
-            inputMessage.value = '';
-        }
-
-        const data = {
-            message: message,
-            user   : {
-                avatar      : '{{ auth()->user()->avatar }}',
-                display_name: '{{ auth()->user()->display_name }}',
-                uuid        : '{{ str(auth()->user()->email)->replace('@okkio.chat', '') }}',
-            },
-        };
-
-        // send message
-        Echo.join('lobby')
-            .whisper(
-                'new-message',
-                data
-            );
-
-        chatList.innerHTML += renderMessage(data.user.avatar, 'شما', data.message);
-        inputMessage.value = '';
-        updateScrollPosition();
     }
 
-    function handleNewMessageWhisper(event)
-    {
-        chatList.innerHTML += renderMessage(event.user.avatar, event.user.display_name, event.message);
-        updateScrollPosition();
-    }
+    function handleLocalThemeCommand(message) {
+        const normalized = message.replace(/\s+/g, ' ').trim();
 
-    const typingTimeOutIds = {};
-
-    function handleTypingWhisper(event)
-    {
-        if (typingTimeOutIds[event.uuid])
-        {
-            clearTimeout(typingTimeOutIds[event.uuid]);
+        if (normalized === 'دارک' || normalized === 'تم دارک') {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('okkio-theme', 'dark');
+            appendMessage({ avatar: systemAvatar, display_name: 'سیستم اوکیوچت', uuid: 'system' }, 'تم شخصی شما روی حالت تیره قرار گرفت.', false);
+            return true;
         }
 
-        typingTimeOutIds[event.uuid] = setTimeout(
-            () =>
-            {
-                document.getElementById(`online-user-status-${event.uuid}`).innerText = 'آنلاین';
-            },
-            2000
-        );
+        if (normalized === 'لایت' || normalized === 'تم لایت') {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('okkio-theme', 'light');
+            appendMessage({ avatar: systemAvatar, display_name: 'سیستم اوکیوچت', uuid: 'system' }, 'تم شخصی شما روی حالت روشن قرار گرفت.', false);
+            return true;
+        }
 
-        document.getElementById(`online-user-status-${event.uuid}`).innerText = 'درحال نوشتن...';
+        return false;
     }
 
-    function handleMessageInputTypingEvent(event)
-    {
-        Echo.join('lobby')
-            .whisper(
-                'typing',
-                {
-                    display_name: '{{ auth()->user()->display_name }}',
-                    uuid        : '{{ str(auth()->user()->email)->replace('@okkio.chat', '') }}',
-                    message     : inputMessage.value,
-                }
-            );
+    function handleChatMessage(event) {
+        if (!event || !event.user || typeof event.message !== 'string') return;
+        appendMessage(event.user, event.message, event.user.uuid === currentUserUuid);
     }
 
-    function handleHereUsers(users)
-    {
-        users.forEach(user => addUserToOnlineList(user));
+    function handleHereUsers(users) {
+        usersList.replaceChildren();
+        users.forEach(addUserToOnlineList);
+        updateUsersCount();
     }
 
-    function handleUserJoining(user)
-    {
-        chatList.innerHTML += renderMessage(user.avatar, user.display_name, 'وارد تالار شد!');
-        updateScrollPosition();
-
+    function handleUserJoining(user) {
+        appendMessage(user, 'وارد تالار شد!', false);
         addUserToOnlineList(user);
+        updateUsersCount();
     }
 
-    function addUserToOnlineList(user)
-    {
-        const onlineUserElement = document.getElementById(`online-user-wrapper-${user.uuid}`);
-
-        if (!onlineUserElement)
-            usersList.innerHTML += renderOnlineUsers(user.avatar, user.display_name, user.uuid);
+    function handleUserLeaving(user) {
+        appendMessage(user, 'از تالار خارج شد!', false);
+        const element = document.getElementById(userElementId(user.uuid));
+        if (element) element.remove();
+        updateUsersCount();
     }
 
-    function handleUserLeaving(user)
-    {
-        chatList.innerHTML += renderMessage(user.avatar, user.display_name, 'از تالار خارج شد!');
+    function addUserToOnlineList(user) {
+        if (!isSafeUser(user)) return;
+
+        const id = userElementId(user.uuid);
+        if (document.getElementById(id)) return;
+
+        const item = document.createElement('li');
+        item.id = id;
+        item.className = 'flex items-center gap-4 truncate';
+
+        item.appendChild(createAvatar(user.avatar, user.display_name));
+
+        const details = document.createElement('div');
+        details.className = 'text-sm truncate';
+
+        const name = document.createElement('p');
+        name.className = 'text-secondary-700 dark:text-secondary-300 truncate';
+        name.textContent = user.uuid === currentUserUuid ? `${user.display_name} (شما)` : user.display_name;
+
+        const status = document.createElement('p');
+        status.className = 'text-secondary-500 dark:text-secondary-400 text-xs truncate';
+        status.textContent = 'آنلاین';
+
+        details.append(name, status);
+        item.appendChild(details);
+        usersList.appendChild(item);
+    }
+
+    function appendMessage(user, message, mine = false) {
+        if (!isSafeUser(user) || typeof message !== 'string') return;
+
+        const item = document.createElement('li');
+        item.className = 'flex items-start gap-4';
+        item.appendChild(createAvatar(user.avatar, user.display_name));
+
+        const body = document.createElement('div');
+        body.className = 'text-sm flex flex-col gap-1 min-w-0';
+
+        const name = document.createElement('p');
+        name.className = 'text-secondary-500 dark:text-secondary-400';
+        name.textContent = mine ? 'شما' : user.display_name;
+
+        const text = document.createElement('p');
+        text.className = 'text-secondary-700 dark:text-secondary-300 message';
+        text.textContent = message;
+
+        body.append(name, text);
+        item.appendChild(body);
+        chatList.appendChild(item);
         updateScrollPosition();
-        const onlineUserElement = document.getElementById(`online-user-wrapper-${user.uuid}`);
-
-        if (onlineUserElement)
-        {
-            onlineUserElement.remove();
-        }
     }
 
-    function renderMessage(avatar, display_name, message)
-    {
-        return `
-        <li class="flex items-start gap-4">
-            <div class="min-w-10 min-h-10 w-10 h-10 bg-secondary-100 dark:bg-secondary-800 rounded-md overflow-hidden">
-                <img src="${avatar}" alt="" class="w-full h-full object-center object-cover">
-            </div>
-            <div class="text-sm flex flex-col gap-1">
-                <div class="text-secondary-500 dark:text-secondary-400 flex gap-4">
-                    <div class="flex gap-1 items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        </svg>
-                        <p>
-                            ${display_name}
-                        </p>
-                    </div>
-                </div>
-                <p class="text-secondary-700 dark:text-secondary-300 message">
-                    ${message}
-                </p>
-            </div>
-        </li>`;
+    function createAvatar(src, displayName) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'min-w-10 min-h-10 w-10 h-10 bg-secondary-100 dark:bg-secondary-800 rounded-md overflow-hidden';
+
+        const image = document.createElement('img');
+        image.className = 'w-full h-full object-center object-cover';
+        image.alt = `آواتار ${displayName || 'کاربر'}`;
+        image.src = isSafeAvatar(src) ? src : currentUserAvatar;
+
+        wrapper.appendChild(image);
+        return wrapper;
     }
 
-    function renderOnlineUsers(avatar, display_name, uuid)
-    {
-        return `
-            <li id="online-user-wrapper-${uuid}" class="flex items-center gap-4 truncate">
-                <div class="w-10 h-10 min-w-10 min-h-10 bg-secondary-200 dark:bg-secondary-800 rounded-md overflow-hidden">
-                     <img src="${avatar}" alt="" class="w-full h-full object-center object-cover">
-                </div>
-                <div class="text-sm truncate">
-                    <p class="text-secondary-700 dark:text-secondary-300 truncate">
-                        ${display_name}
-                    </p>
-                    <p id="online-user-status-${uuid}" class="text-secondary-500 dark:text-secondary-400 text-xs truncate">
-                        آنلاین
-                    </p>
-                </div>
-            </li>
-        `;
+    function isSafeAvatar(value) {
+        return typeof value === 'string' && value.startsWith('data:image/svg+xml;base64,') && value.length < 20000;
     }
 
-    function updateScrollPosition()
-    {
+    function isSafeUser(user) {
+        if (!user || typeof user.uuid !== 'string' || typeof user.display_name !== 'string') return false;
+
+        const uuidIsValid = /^[0-9a-f-]{36}$/i.test(user.uuid) || user.uuid === 'system';
+        return uuidIsValid && user.display_name.length <= 32 && isSafeAvatar(user.avatar);
+    }
+
+    function userElementId(uuid) {
+        return `online-user-wrapper-${String(uuid).replace(/[^0-9a-z-]/gi, '')}`;
+    }
+
+    function updateUsersCount() {
+        usersCount.textContent = String(usersList.children.length);
+    }
+
+    function updateScrollPosition() {
         chatListWrapper.scrollTop = chatListWrapper.scrollHeight;
+    }
+
+    function showMessageError(message) {
+        messageError.textContent = message;
+        messageError.classList.remove('hidden');
+    }
+
+    function hideMessageError() {
+        messageError.textContent = '';
+        messageError.classList.add('hidden');
+    }
+
+    function extractLivewireError(error) {
+        const text = error?.message || '';
+        if (text.includes('۵۰۰')) return 'حداکثر طول پیام ۵۰۰ نویسه است.';
+        return 'ارسال پیام انجام نشد. چند ثانیه بعد دوباره تلاش کن.';
     }
 </script>
 @endscript

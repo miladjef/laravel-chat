@@ -16,10 +16,15 @@
     @apply bg-primary-500 rounded-sm;
 }
 
-* {
-    font-family: 'IRANSansXFaNum', serif;
+html,
+body,
+input,
+button {
+    font-family: Tahoma, Arial, sans-serif;
 }
 
 .message {
     line-height: 1.8;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }

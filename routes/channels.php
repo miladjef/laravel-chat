@@ -3,17 +3,14 @@
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id)
-{
-    return (int)$user->id === (int)$id;
+Broadcast::channel('App.Models.User.{id}', function (User $user, int $id): bool {
+    return $user->id === $id;
 });
 
-Broadcast::channel('lobby', static function (User $user)
-{
+Broadcast::channel('lobby', static function (User $user): array {
     return [
+        'uuid' => $user->uuid,
         'display_name' => $user->display_name,
-        'email'        => $user->email,
-        'uuid'         => str($user->email)->replace('@okkio.chat', ''),
-        'avatar'       => $user->avatar,
+        'avatar' => $user->avatar,
     ];
 });

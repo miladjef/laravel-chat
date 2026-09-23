@@ -1,33 +1,42 @@
 <?php
 
-use App\Models\User;
-
-if (!function_exists('gravatar'))
-{
+if (! function_exists('avatar_data_uri')) {
     /**
-     * Generate the gravatar profile image URL
-     *
-     * @param mixed|null $target
-     * @param int        $size
-     * @param string     $default_image
-     * @param string     $rating
-     *
-     * @return string
+     * Generate a deterministic local SVG avatar without contacting a third party.
      */
-    function gravatar(mixed $target = null, int $size = 128, string $default_image = 'robohash', string $rating = 'g'): string
+    function avatar_data_uri(string $seed): string
     {
-        $_user = User::class;
+        $hash = hash('sha256', $seed);
+        $hue = hexdec(substr($hash, 0, 4)) % 360;
+        $accentHue = ($hue + 42) % 360;
+        $cells = '';
+        $index = 4;
 
-        if (!$target && auth()->check())
-            $target = auth()->user()->email;
-        else if ($target instanceof $_user)
-            $target = $target->email;
-        else if (is_string($target))
-            $target = strtolower($target);
-        else
-            $target = time() . '-i-am-panicked';
+        for ($row = 0; $row < 5; $row++) {
+            for ($column = 0; $column < 3; $column++) {
+                $visible = hexdec($hash[$index++ % strlen($hash)]) % 2 === 0;
 
-        $hash = md5(strtolower(trim($target)));
-        return "https://www.gravatar.com/avatar/$hash?s=$size&d=$default_image&r=$rating";
+                if (! $visible) {
+                    continue;
+                }
+
+                foreach (array_unique([$column, 4 - $column]) as $x) {
+                    $cells .= sprintf(
+                        '<rect x="%d" y="%d" width="16" height="16" rx="3" fill="hsl(%d 75%% 54%%)"/>',
+                        8 + ($x * 18),
+                        8 + ($row * 18),
+                        $accentHue,
+                    );
+                }
+            }
+        }
+
+        $svg = sprintf(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="18" fill="hsl(%d 32%% 16%%)"/>%s</svg>',
+            $hue,
+            $cells,
+        );
+
+        return 'data:image/svg+xml;base64,'.base64_encode($svg);
     }
 }

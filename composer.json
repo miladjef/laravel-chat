@@ -1,8 +1,14 @@
 {
-    "name": "laravel/laravel",
+    "name": "miladjafarigavzan/okkio-chat",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "Anonymous real-time chat built with Laravel, Livewire and Reverb.",
+    "keywords": [
+        "laravel",
+        "livewire",
+        "reverb",
+        "chat",
+        "websocket"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.2",
@@ -67,5 +73,11 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Miladjef",
+            "role": "Programmer"
+        }
+    ]
 }
