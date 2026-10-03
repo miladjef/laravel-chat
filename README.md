@@ -120,6 +120,7 @@ Reverb را زیر Supervisor یا systemd اجرا کنید و Reverse Proxy و
 برای حذف حساب‌های ناشناس قدیمی Scheduler لاراول باید فعال باشد:
 
 ```cron
+<<<<<<< HEAD
 * * * * * cd /path/to/laravel-chat && php artisan schedule:run >> /dev/null 2>&1
 ```
 
@@ -148,3 +149,8 @@ Docker Compose برای اپلیکیشن از MySQL و Redis بهره می‌گ�
 - متن تایپ نشده روی WebSocket ارسال نمی‌شود.
 - `REVERB_ALLOWED_ORIGINS` باید دامنه واقعی سایت باشد و نباید `*` باشد.
 - روی سرور Production مقدار `APP_DEBUG=false` و `SESSION_SECURE_COOKIE=true` نگه داشته شود.
+=======
+* * * * * cd /path/to/Laravel-chat && php artisan schedule:run >> /dev/null 2>&1
+```
+
+>>>>>>> 3983d239126a78c81af211cf807471d4db1a6c2e
