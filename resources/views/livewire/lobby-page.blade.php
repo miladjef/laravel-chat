@@ -22,6 +22,15 @@
             </div>
         </div>
 
+        <div class="bg-white px-4 py-3 ring-1 ring-secondary-200 rounded-md dark:bg-secondary-900 dark:ring-secondary-800">
+            <div class="flex items-center justify-between gap-3 text-xs">
+                <span class="text-secondary-500 dark:text-secondary-400">ارتباط لحظه‌ای</span>
+                <span id="realtime-status" class="font-medium text-amber-600 dark:text-amber-400" role="status" aria-live="polite">
+                    در حال اتصال
+                </span>
+            </div>
+        </div>
+
         <div class="lg:flex-auto lg:h-0 max-h-52 lg:max-h-none bg-white ring-1 ring-secondary-200 rounded-md flex flex-col dark:bg-secondary-900 dark:ring-secondary-800">
             <div class="px-4 py-4 flex items-center justify-between gap-3">
                 <p class="text-primary-600 dark:text-primary-500">کاربران آنلاین</p>
@@ -30,7 +39,7 @@
             <ul id="online-users-list" wire:ignore class="flex flex-col gap-4 flex-auto min-h-0 scroll overflow-y-auto px-4 pb-4 truncate"></ul>
         </div>
         <p class="text-center text-[11px] text-secondary-400 dark:text-secondary-600" dir="ltr">
-            Programmer: Miladjef
+            Programmer: Milad Jafari Gavzan
         </p>
     </aside>
 
@@ -60,11 +69,11 @@
                            class="w-full px-4 py-2 rounded-md outline-none bg-secondary-100 ring-1 ring-secondary-200 dark:bg-secondary-800 dark:ring-secondary-700 dark:placeholder:text-secondary-500 dark:text-secondary-300"
                            placeholder="پیام خود را بنویسید...">
                 </label>
-                <button id="btn-message" type="submit" class="bg-primary-600 dark:bg-primary-800 px-5 py-2 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="btn-message" type="submit" disabled class="bg-primary-600 dark:bg-primary-800 px-5 py-2 rounded-md text-white disabled:opacity-50 disabled:cursor-not-allowed">
                     ارسال پیام
                 </button>
             </form>
-            <p id="message-error" class="hidden text-sm text-rose-500 mt-2" role="alert"></p>
+            <p id="message-error" class="hidden text-sm text-rose-500 mt-2" role="alert" aria-live="assertive"></p>
         </div>
     </main>
 </div>
@@ -79,9 +88,14 @@
     const messageForm = document.getElementById('form-message');
     const messageButton = document.getElementById('btn-message');
     const messageError = document.getElementById('message-error');
+    const realtimeStatus = document.getElementById('realtime-status');
     const currentUserUuid = @js(auth()->user()->uuid);
     const currentUserAvatar = @js(auth()->user()->avatar);
     const systemAvatar = @js(avatar_data_uri('okkio-system'));
+    const seenMessageIds = new Set();
+    const seenMessageQueue = [];
+    let realtimeConnected = false;
+    let sendingMessage = false;
 
     const savedTheme = localStorage.getItem('okkio-theme');
     if (savedTheme === 'light') document.documentElement.classList.remove('dark');
@@ -91,7 +105,21 @@
         .here(handleHereUsers)
         .joining(handleUserJoining)
         .leaving(handleUserLeaving)
-        .listen('.chat.message', handleChatMessage);
+        .listen('.chat.message', handleChatMessage)
+        .error(() => {
+            updateRealtimeState('failed');
+            showMessageError('احراز ارتباط لحظه‌ای انجام نشد. صفحه را تازه‌سازی کن.');
+        });
+
+    const realtimeConnection = Echo.connector?.pusher?.connection;
+
+    if (realtimeConnection) {
+        updateRealtimeState(realtimeConnection.state || 'connecting');
+        realtimeConnection.bind('state_change', ({ current }) => updateRealtimeState(current));
+        realtimeConnection.bind('error', () => updateRealtimeState('unavailable'));
+    } else {
+        updateRealtimeState('unavailable');
+    }
 
     messageForm.addEventListener('submit', submitMessage);
     updateScrollPosition();
@@ -109,16 +137,24 @@
             return;
         }
 
-        messageButton.disabled = true;
+        if (!realtimeConnected) {
+            showMessageError('ارتباط لحظه‌ای برقرار نیست. پس از اتصال دوباره پیام را ارسال کن.');
+            return;
+        }
+
+        sendingMessage = true;
+        syncSendButton();
 
         try {
-            await $wire.sendMessage(message);
+            const payload = await $wire.sendMessage(message);
+            handleChatPayload(payload);
             inputMessage.value = '';
             inputMessage.focus();
         } catch (error) {
             showMessageError(extractLivewireError(error));
         } finally {
-            messageButton.disabled = false;
+            sendingMessage = false;
+            syncSendButton();
         }
     }
 
@@ -142,9 +178,15 @@
         return false;
     }
 
-    function handleChatMessage(event) {
-        if (!event || !event.user || typeof event.message !== 'string') return;
-        appendMessage(event.user, event.message, event.user.uuid === currentUserUuid);
+    function handleChatMessage(payload) {
+        handleChatPayload(payload);
+    }
+
+    function handleChatPayload(payload) {
+        if (!isSafeChatPayload(payload) || seenMessageIds.has(payload.message_id)) return;
+
+        rememberMessageId(payload.message_id);
+        appendMessage(payload.user, payload.message, payload.user.uuid === currentUserUuid);
     }
 
     function handleHereUsers(users) {
@@ -242,6 +284,25 @@
         return uuidIsValid && user.display_name.length <= 32 && isSafeAvatar(user.avatar);
     }
 
+    function isSafeChatPayload(payload) {
+        return payload
+            && typeof payload.message_id === 'string'
+            && /^[0-9a-f-]{36}$/i.test(payload.message_id)
+            && typeof payload.message === 'string'
+            && payload.message.length <= 500
+            && isSafeUser(payload.user);
+    }
+
+    function rememberMessageId(messageId) {
+        seenMessageIds.add(messageId);
+        seenMessageQueue.push(messageId);
+
+        if (seenMessageQueue.length > 500) {
+            const expiredId = seenMessageQueue.shift();
+            seenMessageIds.delete(expiredId);
+        }
+    }
+
     function userElementId(uuid) {
         return `online-user-wrapper-${String(uuid).replace(/[^0-9a-z-]/gi, '')}`;
     }
@@ -252,6 +313,31 @@
 
     function updateScrollPosition() {
         chatListWrapper.scrollTop = chatListWrapper.scrollHeight;
+    }
+
+    function updateRealtimeState(state) {
+        const normalized = String(state || '').toLowerCase();
+        realtimeConnected = normalized === 'connected';
+
+        const labels = {
+            initialized: 'آماده اتصال',
+            connecting: 'در حال اتصال',
+            connected: 'متصل',
+            unavailable: 'ارتباط در دسترس نیست',
+            failed: 'خطای ارتباط',
+            disconnected: 'قطع شده',
+        };
+
+        realtimeStatus.textContent = labels[normalized] || 'در حال اتصال';
+        realtimeStatus.className = realtimeConnected
+            ? 'font-medium text-emerald-600 dark:text-emerald-400'
+            : 'font-medium text-amber-600 dark:text-amber-400';
+
+        syncSendButton();
+    }
+
+    function syncSendButton() {
+        messageButton.disabled = sendingMessage || !realtimeConnected;
     }
 
     function showMessageError(message) {
@@ -265,9 +351,18 @@
     }
 
     function extractLivewireError(error) {
-        const text = error?.message || '';
-        if (text.includes('۵۰۰')) return 'حداکثر طول پیام ۵۰۰ نویسه است.';
-        return 'ارسال پیام انجام نشد. چند ثانیه بعد دوباره تلاش کن.';
+        const status = Number(error?.status || error?.response?.status || 0);
+        const validationMessage = error?.response?.data?.errors?.message?.[0];
+        const text = String(validationMessage || error?.response?.data?.message || error?.message || '');
+
+        if (status === 401) return 'نشست ورود معتبر نیست. صفحه را تازه‌سازی کن.';
+        if (status === 419) return 'نشست صفحه منقضی شده است. صفحه را تازه‌سازی کن.';
+        if (status === 429 || text.includes('تعداد پیام')) return 'تعداد پیام‌ها زیاد است. چند ثانیه بعد دوباره ارسال کن.';
+        if (status === 422 && validationMessage) return validationMessage;
+        if (text.includes('۵۰۰') || text.includes('500')) return 'حداکثر طول پیام ۵۰۰ نویسه است.';
+        if (status >= 500) return 'سرویس ارسال پیام در دسترس نیست. دوباره تلاش کن.';
+
+        return 'ارسال پیام انجام نشد. اتصال را بررسی و دوباره تلاش کن.';
     }
 </script>
 @endscript

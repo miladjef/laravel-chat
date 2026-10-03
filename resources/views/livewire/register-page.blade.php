@@ -39,14 +39,14 @@
         <footer class="text-center space-y-1">
             <p class="text-sm text-secondary-500 dark:text-secondary-400">Okkio Chat</p>
             <p class="text-xs text-secondary-400 dark:text-secondary-500" dir="ltr">
-                Programmer: Miladjef
+                Programmer: Milad Jafari Gavzan
             </p>
         </footer>
     </section>
 
     <aside class="hidden lg:flex overflow-hidden relative items-center justify-center">
         <div class="w-full h-full overflow-hidden rounded-lg">
-            <img class="w-full h-full object-center object-cover" src="{{ asset('images/okkio.jpg') }}" alt="Okkio Chat">
+            <img class="w-full h-full object-center object-cover" src="{{ asset('images/okkio.webp') }}" width="960" height="1440" fetchpriority="high" decoding="async" alt="Okkio Chat">
         </div>
         <div class="absolute inset-0 rounded-md bg-black bg-opacity-50"></div>
     </aside>

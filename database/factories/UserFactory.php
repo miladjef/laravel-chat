@@ -18,6 +18,7 @@ class UserFactory extends Factory
             'uuid' => $uuid,
             'display_name' => mb_substr(fake()->unique()->userName(), 0, 16),
             'avatar' => avatar_data_uri($uuid),
+            'last_seen_at' => now(),
         ];
     }
 }

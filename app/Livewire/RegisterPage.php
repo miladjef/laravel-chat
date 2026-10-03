@@ -3,8 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\User;
+use App\Support\AnonymousClient;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Rule;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -18,6 +21,16 @@ class RegisterPage extends Component
     public function submit(): void
     {
         $this->validate();
+
+        $rateLimitKey = 'guest-register:'.AnonymousClient::fingerprint();
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            throw ValidationException::withMessages([
+                'display_name' => 'تعداد ورودهای جدید زیاد است. چند دقیقه بعد دوباره تلاش کن.',
+            ]);
+        }
+
+        RateLimiter::hit($rateLimitKey, 600);
 
         $baseName = preg_replace('/\s+/u', ' ', trim($this->display_name)) ?: '';
 
@@ -42,6 +55,7 @@ class RegisterPage extends Component
                     'uuid' => $uuid,
                     'display_name' => $displayName,
                     'avatar' => avatar_data_uri($uuid),
+                    'last_seen_at' => now(),
                 ]);
                 break;
             } catch (QueryException $exception) {
@@ -49,6 +63,12 @@ class RegisterPage extends Component
                     throw $exception;
                 }
             }
+        }
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'display_name' => 'ایجاد شناسه انجام نشد. دوباره تلاش کن.',
+            ]);
         }
 
         auth()->login($user);

@@ -215,4 +215,16 @@ return [
 
     'partitioned' => env('SESSION_PARTITIONED_COOKIE', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Session Serialization
+    |--------------------------------------------------------------------------
+    |
+    | JSON avoids PHP object deserialization in session payloads. Okkio Chat
+    | stores scalar session values only, so JSON is the safer default.
+    |
+    */
+
+    'serialization' => env('SESSION_SERIALIZATION', 'json'),
+
 ];

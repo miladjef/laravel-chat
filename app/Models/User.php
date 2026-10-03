@@ -14,9 +14,17 @@ class User extends Authenticatable
         'uuid',
         'display_name',
         'avatar',
+        'last_seen_at',
     ];
 
     protected $hidden = [
         'remember_token',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'last_seen_at' => 'datetime',
+        ];
+    }
 }

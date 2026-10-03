@@ -13,6 +13,7 @@ return new class extends Migration
             $table->uuid('uuid')->unique();
             $table->string('display_name', 16)->unique();
             $table->text('avatar');
+            $table->timestamp('last_seen_at')->nullable()->index();
             $table->rememberToken();
             $table->timestamps();
         });
