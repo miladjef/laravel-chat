@@ -1,64 +1,61 @@
-# laravel Chat
+# Larvel Chat
 
-laravel Chat یک تالار گفت‌وگوی ناشناس و بلادرنگ بر پایه Laravel، Livewire، Reverb و Vite است.
+Larvel Chat یک تالار گفت‌وگوی بلادرنگ با شناسه موقت بر پایه Laravel 13، Livewire 3، Reverb، Redis و Vite است.
 
 Programmer: Miladjef
 
-## وضعیت این نسخه
+## وضعیت فعلی
 
-این نسخه در پنج فاز بازبینی و اصلاح شده است.
+این نسخه پس از بازبینی امنیت، معماری Realtime، استقرار و تست اصلاح شده است.
 
-### فاز ۱: مسیر پیام و CSRF
+### امنیت پیام و هویت
 
-- منطق Rate Limiter اصلاح شده و دیگر نتیجه `event()` معیار پذیرش پیام نیست.
-- هر پیام یک `message_id` سروری و زمان ارسال دارد.
-- پاسخ ارسال پیام به فرستنده برمی‌گردد تا نمایش پیام به رسیدن WebSocket وابسته نباشد.
-- توکن CSRF در layout اضافه شده است.
-- Echo توکن CSRF را صریح در درخواست `/broadcasting/auth` ارسال می‌کند.
+- پیام ابتدا در Laravel اعتبارسنجی می‌شود و هویت فرستنده از Session سرور گرفته می‌شود.
+- HTML پیام با `textContent` وارد DOM می‌شود و مسیر قدیمی `innerHTML` وجود ندارد.
+- پیام‌ها `message_id` و `sent_at` سروری دارند.
+- Rate Limit هم برای شناسه کاربر و هم برای اثرانگشت HMAC کلاینت اعمال می‌شود.
+- ثبت شناسه موقت Rate Limit و Honeypot دارد.
+- نام نمایشی قبل از ذخیره Normalize می‌شود. تفاوت‌های رایج «ي/ی»، «ك/ک»، فاصله، نیم‌فاصله و ارقام هم‌شکل در کنترل نام تکراری لحاظ می‌شوند.
+- Presence Channel فقط `uuid` و `display_name` را منتشر می‌کند.
+- آواتار از دیتابیس و payload حذف شده و نشان کاربر در مرورگر از UUID و حرف اول نام تولید می‌شود.
 
-### فاز ۲: امنیت و حساب‌های ناشناس
+### حریم خصوصی و عمر داده
 
-- محدودیت ارسال هم بر اساس کاربر و هم بر اساس HMAC آدرس کلاینت اعمال می‌شود. IP خام در کلید Cache ذخیره نمی‌شود.
-- ثبت حساب ناشناس برای هر کلاینت محدود شده است.
-- `last_seen_at` برای پاکسازی حساب‌های موقت اضافه شده است.
-- پاکسازی حساب‌های قدیمی دیگر به Database Session وابسته نیست.
-- کانال Broadcast بدون مصرف حذف شده است.
-- HSTS در Production روی HTTPS، COOP و Headerهای امنیتی پایه اضافه شده‌اند.
-- Session محلی به صورت پیش‌فرض روی File قرار گرفته تا جدول Session برای اجرای ساده پروژه ضروری نباشد.
+- حساب‌ها موقت هستند و خروج کاربر رکورد حساب را حذف می‌کند.
+- `last_seen_at` و Heartbeat دوره‌ای از حذف کاربر فعال جلوگیری می‌کنند.
+- Cleanup ساعتی حساب‌های غیرفعال قدیمی را حذف می‌کند.
+- ۵۰ پیام آخر به شکل موقت در Cache نگهداری می‌شوند و TTL پیش‌فرض آن‌ها ۳۰ دقیقه است.
+- صفحه‌ها `noindex` هستند و `robots.txt` خزیدن را مسدود می‌کند.
 
-### فاز ۳: وابستگی‌ها و Production
+### پایداری Realtime
 
-- Laravel به شاخه 13 ارتقا داده شده است.
-- Reverb به شاخه پایدار 1.11 ارتقا داده شده و `@beta` حذف شده است.
-- Livewire روی شاخه 3.7 نگه داشته شده تا مهاجرت UI کم‌ریسک بماند.
-- PHP حداقل 8.3 است.
-- Vite، Laravel Vite Plugin، Echo و Pusher به شاخه‌های جاری ارتقا یافته‌اند.
-- فایل‌های lock قدیمی حذف شده‌اند چون نسخه‌های آسیب‌پذیر قدیمی را تثبیت می‌کردند. بعد از نصب وابستگی‌ها، lockهای تازه را در مخزن نگه دارید.
-- نمونه تنظیمات Production و Docker هماهنگ با MySQL و Redis اضافه شده است.
+- Broadcast از `ShouldBroadcast` عبور می‌کند و در Production روی Redis Queue قرار می‌گیرد.
+- پاسخ Livewire همان payload پیام را به فرستنده برمی‌گرداند تا نمایش پیام خودش به WebSocket وابسته نباشد.
+- `message_id` جلوی نمایش تکراری پیام را می‌گیرد.
+- وضعیت اتصال Reverb در رابط نمایش داده می‌شود.
+- هنگام قطع Realtime، دکمه ارسال غیرفعال می‌شود.
+- Heartbeat پیش‌فرض هر ۱۸۰ ثانیه اجرا می‌شود.
+- DOM حداکثر ۳۰۰ پیام پویا را نگه می‌دارد.
+- ساعت هر پیام از `sent_at` سرور نمایش داده می‌شود.
 
-### فاز ۴: پایداری Realtime و تست
+### مرز شبکه و Headerهای امنیتی
 
-- پیام‌های Broadcast و پاسخ Livewire با `message_id` deduplicate می‌شوند.
-- وضعیت اتصال شامل اتصال، قطع، خطا و عدم دسترسی در رابط نمایش داده می‌شود.
-- هنگام قطع ارتباط لحظه‌ای ارسال پیام غیرفعال است.
-- خطاهای 401، 419، 422، 429 و خطاهای سرور پیام‌های جدا دارند.
-- تست‌های ثبت نام، Rate Limit، Presence Channel، Broadcast، خروج، CSRF و پاکسازی حساب‌های قدیمی اضافه شده‌اند.
+- Trusted Hosts فعال است.
+- Trusted Proxies از `TRUSTED_PROXIES` خوانده می‌شود.
+- HSTS در Production روی HTTPS فعال است.
+- CSP سازگار با Livewire 3 در Production فعال است.
+- `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `COOP` و `X-Robots-Tag` تنظیم شده‌اند.
 
-### فاز ۵: پاکسازی و بهینه‌سازی
-
-- Session Serialization برای Laravel 13 روی JSON قرار گرفته است.
-- Seeder آزمایشی حذف شده است.
-- Assetهای بدون مصرف و favicon صفر بایت حذف شده‌اند.
-- تصویر صفحه ورود به WebP سبک‌تر تبدیل شده است.
-- فایل‌های `.env` واقعی، `public/hot`، log و build توسعه در بسته قرار ندارند.
+نکته: Livewire 3 برای evaluator سمت کلاینت به سیاست CSP سازگار با `unsafe-eval` نیاز دارد. مهاجرت به CSP سخت‌گیرانه بدون `unsafe-eval` بهتر است همراه ارتقای مستقل به Livewire 4 و تست مرورگر انجام شود.
 
 ## پیش‌نیازها
 
 - PHP 8.3 یا بالاتر
 - Composer 2
-- Node.js سازگار با Vite 8، ترجیحاً Node.js 22.12 یا بالاتر
+- Node.js 22 یا بالاتر
 - npm
-- SQLite برای توسعه ساده، یا MySQL و Redis برای محیط Production
+- SQLite برای توسعه سبک
+- MySQL و Redis برای Production
 
 ## نصب توسعه
 
@@ -67,14 +64,12 @@ cp .env.example .env
 composer install
 php artisan key:generate
 php artisan migrate
-npm install --ignore-scripts
+npm install
 npm run build
 php artisan test
 ```
 
-پس از نخستین نصب موفق، `composer.lock` و `package-lock.json` تولیدشده را در مخزن پروژه ثبت کنید تا Deploymentهای بعدی تکرارپذیر باشند.
-
-اجرای توسعه:
+برای اجرای محلی:
 
 ```bash
 php artisan serve
@@ -82,28 +77,50 @@ php artisan reverb:start
 npm run dev
 ```
 
+در تنظیم توسعه `QUEUE_CONNECTION=sync` است تا Broadcast بدون Worker جدا اجرا شود.
+
+## Lock files
+
+پس از نخستین نصب موفق روی سیستمی که به Packagist و npm دسترسی دارد، این دو فایل را در مخزن ثبت کنید:
+
+```text
+composer.lock
+package-lock.json
+```
+
+پس از ثبت lockها، Deployment با `composer install` و `npm ci` انجام شود.
+
 ## Production
 
-فایل `.env.production.example` را مبنا قرار دهید. مقادیر APP_KEY، دیتابیس و اطلاعات Reverb را با مقادیر واقعی سرور جایگزین کنید.
+`.env.production.example` را مبنا قرار دهید و Secretها را با مقادیر واقعی جایگزین کنید.
 
-تنظیمات اصلی Production:
+موارد اصلی:
 
 ```env
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://chat.example.com
+TRUSTED_HOSTS=chat.example.com
+TRUSTED_PROXIES=REMOTE_ADDR
+
 SESSION_DRIVER=redis
 SESSION_ENCRYPT=true
-SESSION_SERIALIZATION=json
 SESSION_SECURE_COOKIE=true
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
+
 BROADCAST_CONNECTION=reverb
 REVERB_HOST=chat.example.com
 REVERB_PORT=443
 REVERB_SCHEME=https
 REVERB_ALLOWED_ORIGINS=https://chat.example.com
+
+HEALTH_CHECK_REVERB=true
+HEALTH_REVERB_HOST=127.0.0.1
+HEALTH_REVERB_PORT=8080
 ```
+
+`TRUSTED_PROXIES=REMOTE_ADDR` زمانی مناسب است که PHP فقط از Reverse Proxy داخلی درخواست دریافت کند. اگر Cloudflare یا Load Balancer مستقیماً به PHP دسترسی دارد، CIDRهای Proxy مورد اعتماد را صریح در `TRUSTED_PROXIES` قرار دهید. از `*` روی سرویس در دسترس عمومی استفاده نکنید.
 
 پس از Deployment:
 
@@ -113,44 +130,93 @@ php artisan optimize
 php artisan reverb:restart
 ```
 
-Reverb را زیر Supervisor یا systemd اجرا کنید و Reverse Proxy وب‌سرور را برای WebSocket تنظیم کنید.
+Reverb، Queue Worker و Scheduler باید به شکل Processهای مستقل اجرا شوند.
 
-## Scheduler
+نمونه Worker:
 
-برای حذف حساب‌های ناشناس قدیمی Scheduler لاراول باید فعال باشد:
+```bash
+php artisan queue:work redis --queue=broadcasts,default --sleep=1 --tries=3 --timeout=60
+```
 
-```cron
-<<<<<<< HEAD
-* * * * * cd /path/to/laravel-chat && php artisan schedule:run >> /dev/null 2>&1
+Scheduler:
+
+```bash
+php artisan schedule:work
 ```
 
 ## Docker
 
-ابتدا dependencyهای Composer را نصب کنید تا Laravel Sail در `vendor` وجود داشته باشد. سپس:
+Docker Compose شامل این سرویس‌هاست:
+
+- `laravel.test`
+- `reverb`
+- `worker`
+- `scheduler`
+- `mysql`
+- `redis`
+
+پس از نصب Composer و ایجاد `.env`:
 
 ```bash
-cp .env.example .env
-php artisan key:generate
 ./vendor/bin/sail up -d
 ./vendor/bin/sail artisan migrate
-./vendor/bin/sail npm install --ignore-scripts
+./vendor/bin/sail npm install
 ./vendor/bin/sail npm run build
 ./vendor/bin/sail artisan test
 ```
 
-Docker Compose برای اپلیکیشن از MySQL و Redis بهره می‌گیرد و مقادیر توسعه مناسب را به Container تزریق می‌کند.
+## Health checks
 
-## کنترل‌های امنیتی مهم
+`/up` سلامت Boot لاراول را نشان می‌دهد.
 
-- داده‌های پیام با `textContent` وارد DOM می‌شوند.
-- هویت پیام از Session سرور گرفته می‌شود.
-- Presence Channel ایمیل یا داده خصوصی کاربر را منتشر نمی‌کند.
-- آواتار داخل برنامه تولید می‌شود و درخواست Gravatar وجود ندارد.
-- متن تایپ نشده روی WebSocket ارسال نمی‌شود.
-- `REVERB_ALLOWED_ORIGINS` باید دامنه واقعی سایت باشد و نباید `*` باشد.
-- روی سرور Production مقدار `APP_DEBUG=false` و `SESSION_SECURE_COOKIE=true` نگه داشته شود.
-=======
-* * * * * cd /path/to/Laravel-chat && php artisan schedule:run >> /dev/null 2>&1
+`/ready` دیتابیس و Cache را بررسی می‌کند. اگر `HEALTH_CHECK_REVERB=true` باشد، پورت داخلی Reverb نیز بررسی می‌شود. پاسخ سالم HTTP 200 و پاسخ ناسالم HTTP 503 است.
+
+## تست و کیفیت کد
+
+تست PHP:
+
+```bash
+php artisan test
 ```
 
->>>>>>> 3983d239126a78c81af211cf807471d4db1a6c2e
+فرمت کد:
+
+```bash
+vendor/bin/pint --test
+```
+
+تحلیل ایستا:
+
+```bash
+vendor/bin/phpstan analyse --memory-limit=1G
+```
+
+تست E2E با Playwright:
+
+```bash
+npx playwright install chromium
+npm run test:e2e
+```
+
+تست E2E دو Session مستقل ایجاد می‌کند، Presence را بررسی می‌کند، پیام را بین دو کاربر ردوبدل می‌کند و یک payload HTML را برای جلوگیری از XSS آزمایش می‌کند.
+
+Workflow موجود در `.github/workflows/ci.yml` مراحل PHP، Larastan، Pint، PHPUnit، build فرانت، audit وابستگی‌ها و Playwright را اجرا می‌کند.
+
+## تنظیمات Chat
+
+```env
+CHAT_HISTORY_LIMIT=50
+CHAT_HISTORY_TTL_MINUTES=30
+CHAT_DOM_MESSAGE_LIMIT=300
+CHAT_HEARTBEAT_SECONDS=180
+CHAT_GUEST_STALE_HOURS=24
+```
+
+## نکات عملیاتی
+
+- Secretهای Reverb و `APP_KEY` را در مخزن ثبت نکنید.
+- `APP_DEBUG` در Production باید `false` باشد.
+- `REVERB_ALLOWED_ORIGINS` باید دامنه واقعی باشد.
+- دسترسی مستقیم به پورت داخلی Reverb را در Firewall محدود کنید و WebSocket را از Reverse Proxy عبور دهید.
+- Queue Worker و Reverb را زیر Supervisor، systemd یا Container orchestrator نگه دارید.
+- در استقرار چند سروری، Redis مشترک برای Cache، Queue و Reverb Scaling ضروری است.

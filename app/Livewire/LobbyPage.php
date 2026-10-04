@@ -4,6 +4,8 @@ namespace App\Livewire;
 
 use App\Events\ChatMessageSent;
 use App\Support\AnonymousClient;
+use App\Support\ChatHistory;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
@@ -19,16 +21,41 @@ class LobbyPage extends Component
         return [
             'سلااام 👋',
             'به تالار گفت‌وگوی اوکیو خوش اومدید 🔥',
-            'در این محیط به صورت ناشناس گفت‌وگو می‌کنیم 🍃',
+            'در این محیط با شناسه موقت گفت‌وگو می‌کنیم 🍃',
             'برای حفظ امنیت و حریم خصوصی، اطلاعات حساس و شخصی خودت یا دیگران را منتشر نکن ❤️',
             'برای تغییر تم شخصی، «دارک» یا «لایت» را ارسال کن 🌚',
         ];
+    }
+
+    public function recentMessages(): array
+    {
+        return app(ChatHistory::class)->recent();
+    }
+
+    public function heartbeat(): void
+    {
+        $this->skipRender();
+
+        /** @var \App\Models\User|null $user */
+        $user = auth()->user();
+        abort_unless($user, 401);
+
+        Cache::put(
+            'chat:presence:'.$user->uuid,
+            now()->getTimestamp(),
+            now()->addSeconds(max(60, (int) config('chat.heartbeat_seconds', 180) * 3)),
+        );
+
+        if (! $user->last_seen_at || $user->last_seen_at->lt(now()->subMinutes(2))) {
+            $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+        }
     }
 
     public function sendMessage(string $message): array
     {
         $this->skipRender();
 
+        /** @var \App\Models\User|null $user */
         $user = auth()->user();
         abort_unless($user, 401);
 
@@ -43,9 +70,6 @@ class LobbyPage extends Component
             ]);
         }
 
-        RateLimiter::hit($userKey, 10);
-        RateLimiter::hit($clientKey, 10);
-
         validator(
             ['message' => $message],
             ['message' => ['required', 'string', 'max:500']],
@@ -55,9 +79,16 @@ class LobbyPage extends Component
             ]
         )->validate();
 
-        $event = ChatMessageSent::fromUser($user, $message);
-        event($event);
+        RateLimiter::hit($userKey, 10);
+        RateLimiter::hit($clientKey, 10);
 
-        return $event->broadcastWith();
+        $event = ChatMessageSent::fromUser($user, $message);
+        $payload = $event->broadcastWith();
+
+        event($event);
+        app(ChatHistory::class)->push($payload);
+        $this->heartbeat();
+
+        return $payload;
     }
 }

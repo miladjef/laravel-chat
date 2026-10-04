@@ -2,8 +2,9 @@
     <aside class="lg:col-span-4 xl:col-span-3 flex flex-col gap-3 sm:gap-4 min-h-0">
         <div class="bg-white p-4 ring-1 ring-secondary-200 rounded-md dark:bg-secondary-900 dark:ring-secondary-800">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 min-w-10 min-h-10 bg-secondary-200 dark:bg-secondary-800 rounded-md overflow-hidden">
-                    <img src="{{ auth()->user()->avatar }}" alt="آواتار کاربر" class="w-full h-full object-center object-cover">
+                <div class="w-10 h-10 min-w-10 min-h-10 rounded-md bg-primary-700 flex items-center justify-center text-white font-bold select-none"
+                     data-avatar-seed="{{ auth()->user()->uuid }}">
+                    {{ mb_substr(auth()->user()->display_name, 0, 1) }}
                 </div>
                 <div class="text-sm flex flex-col gap-1 truncate grow">
                     <p class="text-secondary-700 dark:text-secondary-300 truncate">
@@ -49,9 +50,7 @@
             <ul class="flex flex-col gap-4" id="chat-list">
                 @foreach($this->systemMessages() as $systemMessage)
                     <li class="flex items-start gap-4">
-                        <div class="min-w-10 min-h-10 w-10 h-10 bg-secondary-100 dark:bg-secondary-800 rounded-md overflow-hidden">
-                            <img src="{{ avatar_data_uri('okkio-system') }}" alt="آواتار سیستم" class="w-full h-full object-center object-cover">
-                        </div>
+                        <div class="min-w-10 min-h-10 w-10 h-10 rounded-md bg-primary-700 text-white flex items-center justify-center font-bold select-none">O</div>
                         <div class="text-sm flex flex-col gap-1 min-w-0">
                             <p class="text-secondary-500 dark:text-secondary-400">سیستم اوکیوچت</p>
                             <p class="text-secondary-700 message dark:text-secondary-300">{{ $systemMessage }}</p>
@@ -80,6 +79,8 @@
 
 @script
 <script>
+    window.__LarvelCLobbyCleanup?.();
+
     const chatListWrapper = document.getElementById('chat-list-wrapper');
     const chatList = document.getElementById('chat-list');
     const usersList = document.getElementById('online-users-list');
@@ -90,16 +91,23 @@
     const messageError = document.getElementById('message-error');
     const realtimeStatus = document.getElementById('realtime-status');
     const currentUserUuid = @js(auth()->user()->uuid);
-    const currentUserAvatar = @js(auth()->user()->avatar);
-    const systemAvatar = @js(avatar_data_uri('okkio-system'));
+    const initialHistory = @js($this->recentMessages());
+    const maxDomMessages = Math.max(50, Number(@js(config('chat.dom_message_limit', 300))));
+    const heartbeatSeconds = Math.max(60, Number(@js(config('chat.heartbeat_seconds', 180))));
     const seenMessageIds = new Set();
     const seenMessageQueue = [];
+    const dynamicMessageQueue = [];
     let realtimeConnected = false;
     let sendingMessage = false;
+    let heartbeatTimer = null;
 
-    const savedTheme = localStorage.getItem('okkio-theme');
+    applyAvatarColors();
+
+    const savedTheme = localStorage.getItem('LarvelC-theme');
     if (savedTheme === 'light') document.documentElement.classList.remove('dark');
     if (savedTheme === 'dark') document.documentElement.classList.add('dark');
+
+    initialHistory.forEach(handleChatPayload);
 
     const lobbyChannel = Echo.join('lobby')
         .here(handleHereUsers)
@@ -112,17 +120,31 @@
         });
 
     const realtimeConnection = Echo.connector?.pusher?.connection;
+    const stateChangeHandler = ({ current }) => updateRealtimeState(current);
+    const connectionErrorHandler = () => updateRealtimeState('unavailable');
 
     if (realtimeConnection) {
         updateRealtimeState(realtimeConnection.state || 'connecting');
-        realtimeConnection.bind('state_change', ({ current }) => updateRealtimeState(current));
-        realtimeConnection.bind('error', () => updateRealtimeState('unavailable'));
+        realtimeConnection.bind('state_change', stateChangeHandler);
+        realtimeConnection.bind('error', connectionErrorHandler);
     } else {
         updateRealtimeState('unavailable');
     }
 
     messageForm.addEventListener('submit', submitMessage);
+    startHeartbeat();
     updateScrollPosition();
+
+    window.__LarvelCLobbyCleanup = () => {
+        if (heartbeatTimer) window.clearInterval(heartbeatTimer);
+        messageForm?.removeEventListener('submit', submitMessage);
+        realtimeConnection?.unbind('state_change', stateChangeHandler);
+        realtimeConnection?.unbind('error', connectionErrorHandler);
+        try { Echo.leave('lobby'); } catch (_) {}
+        window.__LarvelCLobbyCleanup = null;
+    };
+
+    document.addEventListener('livewire:navigating', () => window.__LarvelCLobbyCleanup?.(), { once: true });
 
     async function submitMessage(event) {
         event.preventDefault();
@@ -158,20 +180,36 @@
         }
     }
 
+    function startHeartbeat() {
+        const beat = async () => {
+            try {
+                await $wire.heartbeat();
+            } catch (error) {
+                if (Number(error?.status || error?.response?.status || 0) === 401) {
+                    showMessageError('نشست ورود پایان یافته است. صفحه را تازه‌سازی کن.');
+                }
+            }
+        };
+
+        beat();
+        heartbeatTimer = window.setInterval(beat, heartbeatSeconds * 1000);
+    }
+
     function handleLocalThemeCommand(message) {
         const normalized = message.replace(/\s+/g, ' ').trim();
+        const systemUser = { uuid: 'system', display_name: 'سیستم اوکیوچت' };
 
         if (normalized === 'دارک' || normalized === 'تم دارک') {
             document.documentElement.classList.add('dark');
-            localStorage.setItem('okkio-theme', 'dark');
-            appendMessage({ avatar: systemAvatar, display_name: 'سیستم اوکیوچت', uuid: 'system' }, 'تم شخصی شما روی حالت تیره قرار گرفت.', false);
+            localStorage.setItem('LarvelC-theme', 'dark');
+            appendMessage(systemUser, 'تم شخصی شما روی حالت تیره قرار گرفت.', false, new Date().toISOString());
             return true;
         }
 
         if (normalized === 'لایت' || normalized === 'تم لایت') {
             document.documentElement.classList.remove('dark');
-            localStorage.setItem('okkio-theme', 'light');
-            appendMessage({ avatar: systemAvatar, display_name: 'سیستم اوکیوچت', uuid: 'system' }, 'تم شخصی شما روی حالت روشن قرار گرفت.', false);
+            localStorage.setItem('LarvelC-theme', 'light');
+            appendMessage(systemUser, 'تم شخصی شما روی حالت روشن قرار گرفت.', false, new Date().toISOString());
             return true;
         }
 
@@ -186,7 +224,7 @@
         if (!isSafeChatPayload(payload) || seenMessageIds.has(payload.message_id)) return;
 
         rememberMessageId(payload.message_id);
-        appendMessage(payload.user, payload.message, payload.user.uuid === currentUserUuid);
+        appendMessage(payload.user, payload.message, payload.user.uuid === currentUserUuid, payload.sent_at);
     }
 
     function handleHereUsers(users) {
@@ -196,13 +234,14 @@
     }
 
     function handleUserJoining(user) {
-        appendMessage(user, 'وارد تالار شد!', false);
+        appendMessage(user, 'وارد تالار شد!', false, new Date().toISOString());
         addUserToOnlineList(user);
         updateUsersCount();
     }
 
     function handleUserLeaving(user) {
-        appendMessage(user, 'از تالار خارج شد!', false);
+        if (!isSafeUser(user)) return;
+        appendMessage(user, 'از تالار خارج شد!', false, new Date().toISOString());
         const element = document.getElementById(userElementId(user.uuid));
         if (element) element.remove();
         updateUsersCount();
@@ -217,8 +256,7 @@
         const item = document.createElement('li');
         item.id = id;
         item.className = 'flex items-center gap-4 truncate';
-
-        item.appendChild(createAvatar(user.avatar, user.display_name));
+        item.appendChild(createAvatar(user.uuid, user.display_name));
 
         const details = document.createElement('div');
         details.className = 'text-sm truncate';
@@ -236,52 +274,70 @@
         usersList.appendChild(item);
     }
 
-    function appendMessage(user, message, mine = false) {
+    function appendMessage(user, message, mine = false, sentAt = null) {
         if (!isSafeUser(user) || typeof message !== 'string') return;
 
         const item = document.createElement('li');
+        item.dataset.dynamicMessage = '1';
         item.className = 'flex items-start gap-4';
-        item.appendChild(createAvatar(user.avatar, user.display_name));
+        item.appendChild(createAvatar(user.uuid, user.display_name));
 
         const body = document.createElement('div');
         body.className = 'text-sm flex flex-col gap-1 min-w-0';
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center gap-2 flex-wrap';
 
         const name = document.createElement('p');
         name.className = 'text-secondary-500 dark:text-secondary-400';
         name.textContent = mine ? 'شما' : user.display_name;
 
+        const time = document.createElement('time');
+        time.className = 'text-[10px] text-secondary-400 dark:text-secondary-500';
+        time.dateTime = typeof sentAt === 'string' ? sentAt : '';
+        time.textContent = formatMessageTime(sentAt);
+
         const text = document.createElement('p');
         text.className = 'text-secondary-700 dark:text-secondary-300 message';
         text.textContent = message;
 
-        body.append(name, text);
+        header.append(name, time);
+        body.append(header, text);
         item.appendChild(body);
         chatList.appendChild(item);
+        dynamicMessageQueue.push(item);
+        trimMessageDom();
         updateScrollPosition();
     }
 
-    function createAvatar(src, displayName) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'min-w-10 min-h-10 w-10 h-10 bg-secondary-100 dark:bg-secondary-800 rounded-md overflow-hidden';
-
-        const image = document.createElement('img');
-        image.className = 'w-full h-full object-center object-cover';
-        image.alt = `آواتار ${displayName || 'کاربر'}`;
-        image.src = isSafeAvatar(src) ? src : currentUserAvatar;
-
-        wrapper.appendChild(image);
-        return wrapper;
+    function createAvatar(seed, displayName) {
+        const avatar = document.createElement('div');
+        avatar.className = 'min-w-10 min-h-10 w-10 h-10 rounded-md text-white flex items-center justify-center font-bold select-none';
+        avatar.style.backgroundColor = avatarColor(seed);
+        avatar.textContent = Array.from(displayName || '?')[0] || '?';
+        avatar.setAttribute('aria-label', `نشان ${displayName || 'کاربر'}`);
+        return avatar;
     }
 
-    function isSafeAvatar(value) {
-        return typeof value === 'string' && value.startsWith('data:image/svg+xml;base64,') && value.length < 20000;
+    function avatarColor(seed) {
+        let hash = 2166136261;
+        for (const char of String(seed || '')) {
+            hash ^= char.codePointAt(0);
+            hash = Math.imul(hash, 16777619);
+        }
+        return `hsl(${Math.abs(hash) % 360} 55% 38%)`;
+    }
+
+    function applyAvatarColors() {
+        document.querySelectorAll('[data-avatar-seed]').forEach((element) => {
+            element.style.backgroundColor = avatarColor(element.dataset.avatarSeed);
+        });
     }
 
     function isSafeUser(user) {
         if (!user || typeof user.uuid !== 'string' || typeof user.display_name !== 'string') return false;
-
         const uuidIsValid = /^[0-9a-f-]{36}$/i.test(user.uuid) || user.uuid === 'system';
-        return uuidIsValid && user.display_name.length <= 32 && isSafeAvatar(user.avatar);
+        return uuidIsValid && user.display_name.length <= 32;
     }
 
     function isSafeChatPayload(payload) {
@@ -290,6 +346,7 @@
             && /^[0-9a-f-]{36}$/i.test(payload.message_id)
             && typeof payload.message === 'string'
             && payload.message.length <= 500
+            && typeof payload.sent_at === 'string'
             && isSafeUser(payload.user);
     }
 
@@ -297,10 +354,26 @@
         seenMessageIds.add(messageId);
         seenMessageQueue.push(messageId);
 
-        if (seenMessageQueue.length > 500) {
+        if (seenMessageQueue.length > 600) {
             const expiredId = seenMessageQueue.shift();
             seenMessageIds.delete(expiredId);
         }
+    }
+
+    function trimMessageDom() {
+        while (dynamicMessageQueue.length > maxDomMessages) {
+            dynamicMessageQueue.shift()?.remove();
+        }
+    }
+
+    function formatMessageTime(value) {
+        const date = new Date(value || Date.now());
+        if (Number.isNaN(date.getTime())) return '';
+
+        return new Intl.DateTimeFormat('fa-IR', {
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(date);
     }
 
     function userElementId(uuid) {

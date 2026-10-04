@@ -220,7 +220,7 @@ return [
     | Session Serialization
     |--------------------------------------------------------------------------
     |
-    | JSON avoids PHP object deserialization in session payloads. Okkio Chat
+    | JSON avoids PHP object deserialization in session payloads. LarvelC Chat
     | stores scalar session values only, so JSON is the safer default.
     |
     */

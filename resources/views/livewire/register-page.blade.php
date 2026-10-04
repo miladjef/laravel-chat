@@ -2,24 +2,28 @@
     <section class="flex flex-col items-center justify-center gap-8 py-8">
         <header class="flex flex-col items-center justify-start gap-2 relative text-center">
             <p class="absolute text-secondary-100 dark:text-secondary-900/80 font-black text-5xl sm:text-6xl -top-5 select-none">
-                OKKIO CHAT
+                LarvelC CHAT
             </p>
             <h1 class="font-bold text-secondary-600 dark:text-secondary-300 text-lg z-10">
-                اوکیو، گفت‌وگوی ناشناس
+                اوکیو، گفت‌وگو با شناسه موقت
             </h1>
             <p class="text-sm text-secondary-600 dark:text-secondary-400">
-                برای حفظ حریم خصوصی، با یک شناسه ناشناس وارد می‌شوی
+                برای حفظ حریم خصوصی، با یک شناسه موقت وارد می‌شوی
             </p>
         </header>
 
         <main class="w-full max-w-sm">
             <form wire:submit.prevent="submit" class="flex flex-col gap-4 w-full">
+                <div class="absolute -left-[9999px] h-px w-px overflow-hidden" aria-hidden="true">
+                    <label for="website">وب‌سایت</label>
+                    <input wire:model="website" id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+                </div>
                 <div class="flex flex-col gap-2 w-full">
-                    <label for="input-okkio-name" class="w-full text-secondary-700 dark:text-secondary-300">
+                    <label for="input-LarvelC-name" class="w-full text-secondary-700 dark:text-secondary-300">
                         نام نمایشی
                         <span class="text-rose-500">*</span>
                     </label>
-                    <input wire:model="display_name" id="input-okkio-name" type="text" minlength="3" maxlength="16"
+                    <input wire:model="display_name" id="input-LarvelC-name" type="text" minlength="3" maxlength="16"
                            autocomplete="off" placeholder="برنامه نویس بی حوصله"
                            class="w-full rounded px-4 py-2 outline-none ring-1 ring-secondary-100 focus:ring-primary-500 transition-all duration-300 dark:bg-secondary-900 dark:ring-secondary-800 dark:placeholder:text-secondary-500 dark:text-secondary-300">
                     <p class="text-xs text-secondary-500 dark:text-secondary-400">
@@ -37,7 +41,7 @@
         </main>
 
         <footer class="text-center space-y-1">
-            <p class="text-sm text-secondary-500 dark:text-secondary-400">Okkio Chat</p>
+            <p class="text-sm text-secondary-500 dark:text-secondary-400">LarvelC Chat</p>
             <p class="text-xs text-secondary-400 dark:text-secondary-500" dir="ltr">
                 Programmer: Milad Jafari Gavzan
             </p>
@@ -46,7 +50,7 @@
 
     <aside class="hidden lg:flex overflow-hidden relative items-center justify-center">
         <div class="w-full h-full overflow-hidden rounded-lg">
-            <img class="w-full h-full object-center object-cover" src="{{ asset('images/okkio.webp') }}" width="960" height="1440" fetchpriority="high" decoding="async" alt="Okkio Chat">
+            <img class="w-full h-full object-center object-cover" src="{{ asset('images/LarvelC.webp') }}" width="960" height="1440" fetchpriority="high" decoding="async" alt="LarvelC Chat">
         </div>
         <div class="absolute inset-0 rounded-md bg-black bg-opacity-50"></div>
     </aside>

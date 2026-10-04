@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\User;
 use App\Support\AnonymousClient;
+use App\Support\DisplayNameNormalizer;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -18,9 +19,29 @@ class RegisterPage extends Component
     #[Rule(['required', 'string', 'min:3', 'max:16'])]
     public string $display_name = '';
 
+    public string $website = '';
+
+    public function mount(): void
+    {
+        session()->put('guest_register_started_at', now()->getTimestamp());
+    }
+
     public function submit(): void
     {
         $this->validate();
+
+        if ($this->website !== '') {
+            throw ValidationException::withMessages([
+                'display_name' => 'درخواست نامعتبر است.',
+            ]);
+        }
+
+        $startedAt = (int) session()->get('guest_register_started_at', 0);
+        if ($startedAt > 0 && now()->getTimestamp() - $startedAt < 1) {
+            throw ValidationException::withMessages([
+                'display_name' => 'لطفاً دوباره تلاش کن.',
+            ]);
+        }
 
         $rateLimitKey = 'guest-register:'.AnonymousClient::fingerprint();
 
@@ -36,25 +57,30 @@ class RegisterPage extends Component
 
         validator(
             ['display_name' => $baseName],
-            ['display_name' => ['required', 'string', 'min:3', 'max:16', 'regex:/^[\p{L}\p{N}_\-\s]+$/u']],
+            ['display_name' => ['required', 'string', 'min:3', 'max:16', 'regex:/^[\p{L}\p{N}_\-\s\x{200C}\x{200D}]+$/u']],
             [
                 'display_name.regex' => 'نام نمایشی شامل نویسه نامعتبر است.',
             ]
         )->validate();
 
+        $normalizedBase = DisplayNameNormalizer::normalize($baseName);
         $user = null;
 
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $suffix = $attempt === 0 ? '' : ' '.random_int(1000, 9999);
             $maxBaseLength = 16 - mb_strlen($suffix);
             $displayName = mb_substr($baseName, 0, max(1, $maxBaseLength)).$suffix;
-            $uuid = (string) Str::uuid();
+            $normalizedName = DisplayNameNormalizer::normalize($displayName);
+
+            if ($normalizedName === '') {
+                $normalizedName = $normalizedBase !== '' ? $normalizedBase : Str::lower((string) Str::uuid());
+            }
 
             try {
                 $user = User::create([
-                    'uuid' => $uuid,
+                    'uuid' => (string) Str::uuid(),
                     'display_name' => $displayName,
-                    'avatar' => avatar_data_uri($uuid),
+                    'normalized_name' => $normalizedName,
                     'last_seen_at' => now(),
                 ]);
                 break;
@@ -73,6 +99,7 @@ class RegisterPage extends Component
 
         auth()->login($user);
         request()->session()->regenerate();
+        session()->forget('guest_register_started_at');
 
         $this->redirectRoute('lobby', navigate: true);
     }

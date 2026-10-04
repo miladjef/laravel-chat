@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Support\DisplayNameNormalizer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -12,12 +13,12 @@ class UserFactory extends Factory
 {
     public function definition(): array
     {
-        $uuid = (string) Str::uuid();
+        $displayName = mb_substr(fake()->unique()->userName(), 0, 16);
 
         return [
-            'uuid' => $uuid,
-            'display_name' => mb_substr(fake()->unique()->userName(), 0, 16),
-            'avatar' => avatar_data_uri($uuid),
+            'uuid' => (string) Str::uuid(),
+            'display_name' => $displayName,
+            'normalized_name' => DisplayNameNormalizer::normalize($displayName),
             'last_seen_at' => now(),
         ];
     }

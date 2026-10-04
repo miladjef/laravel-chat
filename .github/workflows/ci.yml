@@ -1,0 +1,67 @@
+name: CI
+
+on:
+    push:
+    pull_request:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.3'
+                  extensions: mbstring, pdo_sqlite, intl, pcntl, sockets
+                  coverage: none
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+
+            - name: Install PHP dependencies
+              run: composer install --no-interaction --prefer-dist --no-progress
+
+            - name: Install frontend dependencies
+              run: |
+                  if [ -f package-lock.json ]; then npm ci; else npm install --ignore-scripts; fi
+
+            - name: Configure application
+              run: |
+                  cp .env.example .env
+                  php artisan key:generate
+                  php artisan migrate --force
+
+            - name: PHP formatting
+              run: vendor/bin/pint --test
+
+            - name: Static analysis
+              run: vendor/bin/phpstan analyse --memory-limit=1G
+
+            - name: PHPUnit
+              run: php artisan test
+
+            - name: Build frontend
+              run: npm run build
+
+            - name: Dependency audit
+              run: |
+                  composer audit
+                  npm audit --audit-level=high
+
+            - name: Install Playwright Chromium
+              run: npx playwright install --with-deps chromium
+
+            - name: Start application services
+              run: |
+                  php artisan serve --host=127.0.0.1 --port=8000 > storage/logs/ci-http.log 2>&1 &
+                  php artisan reverb:start --host=127.0.0.1 --port=8080 > storage/logs/ci-reverb.log 2>&1 &
+                  for i in {1..30}; do curl -fsS http://localhost:8000/auth >/dev/null && break; sleep 1; done
+
+            - name: Browser tests
+              run: npm run test:e2e

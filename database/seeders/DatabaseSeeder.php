@@ -8,6 +8,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Intentionally empty. Okkio Chat creates ephemeral users at runtime.
+        // Intentionally empty. LarvelC Chat creates ephemeral users at runtime.
     }
 }

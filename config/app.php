@@ -105,6 +105,18 @@ return [
         ),
     ],
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted Network Boundary
+    |--------------------------------------------------------------------------
+    */
+
+    'trusted_hosts' => array_values(array_filter(array_map(
+        static fn (string $host): string => '^'.preg_quote(trim($host), '/').'$' ,
+        explode(',', (string) env('TRUSTED_HOSTS', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST) ?: 'localhost')),
+    ))),
+
     /*
     |--------------------------------------------------------------------------
     | Maintenance Mode Driver

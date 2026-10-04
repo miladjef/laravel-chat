@@ -6,7 +6,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="author" content="Milad Jafari Gavzan">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>{{ $title ?? 'Okkio Chat' }}</title>
+    <meta name="robots" content="noindex,nofollow,noarchive">
+    <title>{{ $title ?? 'LarvelC Chat' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
