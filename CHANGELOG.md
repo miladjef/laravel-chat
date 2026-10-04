@@ -2,7 +2,7 @@
 
 ## 2026-10-04
 
-Programmer: Milad Jafari Gavzan
+Programmer: Miladjef
 
 - Added trusted host and trusted proxy configuration.
 - Added temporary-presence heartbeat and stale-user protection.
